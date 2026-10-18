@@ -1,0 +1,850 @@
+:root {
+  --paper: #f5f7fa;
+  --board: #ffffff;
+  --ink: #18212f;
+  --graphite: #5b6675;
+  --rule: #dce2ea;
+  --pencil: #2e5bba;
+  --highlighter: #ffe873;
+  --wrong: #d93b4c;
+
+  --sans:
+    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: 72px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: var(--pencil);
+  text-underline-offset: 3px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--pencil);
+  outline-offset: 2px;
+}
+
+/* One width for everything on the page, so all the edges line up. */
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+main > .page + .page {
+  margin-top: 80px;
+}
+
+/* ---------- Top bar ---------- */
+
+/* See-through header: whatever scrolls underneath shows through, blurred. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(245, 247, 250, 0.72);
+  -webkit-backdrop-filter: blur(4px) saturate(160%);
+  backdrop-filter: blur(4px) saturate(160%);
+  border-bottom: 1px solid rgba(220, 226, 234, 0.8);
+}
+
+.topbar__inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.topbar__title {
+  flex-shrink: 0;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* The nav fills the full bar height and centres its links itself, so a hidden
+   scrollbar on small screens can't push the links up. */
+.topbar__nav {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-left: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.topbar__nav::-webkit-scrollbar {
+  display: none;
+}
+
+.topbar__nav a {
+  flex-shrink: 0;
+  color: var(--graphite);
+  font-size: 15px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.topbar__nav a:hover {
+  color: var(--ink);
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  padding-top: 48px;
+}
+
+.hero h1 {
+  font-size: clamp(36px, 7vw, 48px);
+  letter-spacing: -0.025em;
+}
+
+.lead {
+  margin: 12px 0 0;
+  max-width: 34em;
+  color: var(--graphite);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+/* ---------- Expandable sections ---------- */
+
+.sections__head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
+  font-size: 24px;
+}
+
+.section {
+  border-bottom: 1px solid var(--rule);
+}
+
+.section summary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 40px 18px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.section summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A plain plus that turns into a minus when the section is open */
+.section summary::after {
+  content: "+";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--graphite);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.section[open] summary::after {
+  content: "−";
+}
+
+.section summary:hover .section__title {
+  color: var(--pencil);
+}
+
+.section__title {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.section__hint {
+  color: var(--graphite);
+  font-size: 15px;
+}
+
+.section__body {
+  padding: 4px 0 36px;
+}
+
+/* Keep running text to a comfortable line length inside the wide column */
+.section__body > p,
+.section__body > ol,
+.defs--stacked dd {
+  max-width: 40em;
+}
+
+.section__body > p {
+  margin: 0 0 20px;
+}
+
+/* ---------- Figure 1: the live demo ---------- */
+
+.figure {
+  margin: 32px 0 0;
+}
+
+.toolbar {
+  min-height: 56px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar__idle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toolbar__idle[hidden],
+.toolbar__round[hidden] {
+  display: none;
+}
+
+.toolbar__mode {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.toolbar__mode span {
+  color: var(--graphite);
+}
+
+.toolbar__round {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+
+.readout dt {
+  color: var(--graphite);
+  font-size: 13px;
+}
+
+.readout dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout--target {
+  margin-left: -8px;
+  padding: 0 8px;
+  border-radius: 4px;
+}
+
+.readout dd.is-urgent {
+  color: var(--wrong);
+}
+
+.readout__icon {
+  display: flex;
+}
+
+.shape-icon {
+  width: 20px;
+  height: 20px;
+  fill: var(--highlighter);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* Small enough that the title, toolbar, board and buttons all fit on one screen.
+   It also shrinks on short screens, but never below 280px. */
+#app {
+  position: relative;
+  width: min(100%, 600px, max(280px, calc((100svh - 350px) * 4 / 3)));
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stats {
+  position: absolute;
+  top: calc(8.333% + 6px);
+  left: calc(6.25% + 6px);
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.stats__field {
+  padding: 1px 7px;
+  background: var(--board);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-size: clamp(10px, 2.2vw, 13px);
+  font-variant-numeric: tabular-nums;
+}
+
+.feedback {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.feedback__points {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(13px, 2.6vw, 16px);
+  font-weight: 600;
+  white-space: nowrap;
+  animation: rise 650ms ease-out forwards;
+}
+
+@keyframes rise {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -140%);
+  }
+}
+
+/* Figure letters, placed in the canvas margins where the brief's figure has them */
+.marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: clamp(15px, 2.6vw, 20px);
+  height: clamp(15px, 2.6vw, 20px);
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--pencil);
+  border-radius: 50%;
+  color: var(--pencil);
+  font-family: var(--mono);
+  font-size: clamp(9px, 1.6vw, 12px);
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.marker--a {
+  left: 88%;
+  top: 4.2%;
+}
+
+.marker--b {
+  left: 88%;
+  top: 95.8%;
+}
+
+.marker--c {
+  left: 96.9%;
+  top: 50%;
+}
+
+.marker--g {
+  left: 3.1%;
+  top: 11.5%;
+}
+
+.marker--inline {
+  position: static;
+  transform: none;
+  align-self: center;
+  margin-bottom: 22px;
+}
+
+.controls {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px 32px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.control__group {
+  display: flex;
+  background: var(--board);
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.control__button {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 22px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.control__button:hover {
+  background: var(--paper);
+}
+
+.control__button:active {
+  background: var(--rule);
+}
+
+.control__value {
+  min-width: 56px;
+  line-height: 48px;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.control__label {
+  color: var(--graphite);
+  font-size: 14px;
+}
+
+.legend {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.legend__title {
+  margin: 0 0 12px;
+  color: var(--graphite);
+  font-size: 15px;
+}
+
+.legend__list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 32px;
+  font-size: 15px;
+}
+
+.legend__list div {
+  display: flex;
+  gap: 10px;
+}
+
+.legend__list dt {
+  flex-shrink: 0;
+  color: var(--pencil);
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.legend__list dd {
+  margin: 0;
+}
+
+/* ---------- Buttons ---------- */
+
+.button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--board);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.button:hover {
+  background: #0e1520;
+}
+
+.button--quiet {
+  border-color: var(--rule);
+  background: transparent;
+  color: var(--ink);
+}
+
+.button--quiet:hover {
+  background: var(--paper);
+}
+
+/* ---------- Tables, lists, definitions ---------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.checklist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.checklist th {
+  padding: 8px 16px 8px 0;
+  border-bottom: 1px solid var(--ink);
+  color: var(--graphite);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.checklist td {
+  padding: 10px 16px 10px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.defs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 32px;
+  margin: 0;
+}
+
+.defs dt {
+  font-weight: 600;
+}
+
+.defs dd {
+  margin: 4px 0 0;
+  color: var(--graphite);
+  font-size: 16px;
+}
+
+.defs--stacked {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.defs--stacked > div {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.defs--stacked > div:first-child {
+  padding-top: 0;
+}
+
+.points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--graphite);
+}
+
+.points li:first-child {
+  padding-top: 0;
+}
+
+.points strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.rules {
+  margin: 0 0 28px;
+  padding-left: 22px;
+}
+
+.rules li + li {
+  margin-top: 6px;
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  margin-top: 96px;
+  padding: 20px 0 40px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--rule);
+  color: var(--graphite);
+  font-size: 15px;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer__links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer__links a {
+  color: var(--graphite);
+}
+
+.footer__links a:hover {
+  color: var(--ink);
+}
+
+/* ---------- Round summary ---------- */
+
+/* Stop the page behind the dialog from scrolling while it's open */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+.summary {
+  width: min(460px, 100vw - 32px);
+  padding: 32px;
+  background: var(--board);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(24, 33, 47, 0.14);
+  color: var(--ink);
+}
+
+.summary::backdrop {
+  background: rgba(245, 247, 250, 0.8);
+}
+
+.summary h2 {
+  font-size: 26px;
+}
+
+.summary__badge {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 0 5px;
+  background: var(--highlighter);
+  font-size: 15px;
+}
+
+.summary__badge[hidden] {
+  display: none;
+}
+
+.summary__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin: 20px 0 24px;
+}
+
+.summary__stats dt {
+  color: var(--graphite);
+  font-size: 14px;
+}
+
+.summary__stats dd {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary__score {
+  grid-column: 1 / -1;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.summary__score dd {
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Both buttons share the row; on a narrow phone they stack instead of squashing */
+.summary__actions .button {
+  flex: 1 1 170px;
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.summary__actions .button--quiet {
+  border-color: var(--ink);
+  background: var(--board);
+}
+
+.summary__actions .button--quiet:hover {
+  background: var(--paper);
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+  }
+
+  .topbar__title {
+    display: none;
+  }
+
+  .topbar__inner {
+    padding-right: 0;
+  }
+
+  /* The links scroll sideways on phones; a soft fade on the right shows there's more. */
+  .topbar__nav {
+    flex: 1;
+    gap: 20px;
+    margin-left: 0;
+    padding-right: 32px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 32px),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  }
+
+  /* Tighter intro on phones, so the whole demo still fits on one screen */
+  .hero {
+    padding-top: 20px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .lead {
+    margin-top: 8px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .figure {
+    margin-top: 12px;
+  }
+
+  .toolbar {
+    min-height: 48px;
+  }
+
+  .toolbar__idle {
+    gap: 12px;
+  }
+
+  #app {
+    width: min(100%, max(240px, calc((100svh - 490px) * 4 / 3)));
+  }
+
+  .controls {
+    margin-top: 4px;
+  }
+
+  .toolbar__mode span {
+    display: none;
+  }
+
+  .toolbar__round {
+    gap: 6px 20px;
+  }
+
+  .readout--target {
+    flex-basis: 100%;
+  }
+
+  .legend__list,
+  .defs {
+    grid-template-columns: 1fr;
+  }
+
+  .marker--inline {
+    display: none;
+  }
+}
+
+/* ---------- Reduced motion: keep feedback, drop the movement ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback__points {
+    animation-name: fade;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}

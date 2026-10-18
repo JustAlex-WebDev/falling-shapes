@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en" class="is-loading">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7fa" />
+    <meta
+      name="description"
+      content="Falling Shapes: my PixiJS and TypeScript take-home, with a live demo and notes on how I built it."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
+    <!-- Loaded here (not imported from JS) so the page is never shown unstyled -->
+    <link rel="stylesheet" href="/src/style.css" />
+
+    <!-- The loader's styles live inline so they work before anything else has loaded -->
+    <style>
+      .is-loading {
+        overflow: hidden;
+      }
+
+      .loader {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: #f5f7fa;
+        transition: opacity 250ms ease;
+      }
+
+      .loader.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loader__circle {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #dce2ea;
+        border-top-color: #18212f;
+        border-radius: 50%;
+        animation: loader-spin 0.8s linear infinite;
+      }
+
+      @keyframes loader-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .loader__circle {
+          animation-duration: 2s;
+        }
+      }
+    </style>
+    <noscript>
+      <style>
+        .loader {
+          display: none;
+        }
+      </style>
+    </noscript>
+
+    <title>Falling Shapes, a PixiJS take-home</title>
+  </head>
+  <body>
+    <div id="loader" class="loader" role="status" aria-label="Loading">
+      <div class="loader__circle"></div>
+    </div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="topbar__title" href="#top">Falling Shapes</a>
+        <nav class="topbar__nav" aria-label="Sections">
+          <a href="#decisions">Decisions</a>
+          <a href="#performance">Performance</a>
+          <a href="#game">Symbol Hunt</a>
+          <a href="#notes">Notes</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- The live demo, drawn as Figure 1 from the brief -->
+      <section id="demo" class="hero page" aria-labelledby="page-title">
+        <h1 id="page-title">Falling Shapes</h1>
+        <p class="lead">
+          This is my take-home for a front-end role at Reevo. It's a small
+          PixiJS app written with TypeScript classes. Shapes fall, you tap to
+          add or remove them, and two buttons change how fast it all goes. Have
+          a play with it below.
+        </p>
+
+        <figure class="figure">
+          <div class="toolbar">
+            <div id="hud-idle" class="toolbar__idle">
+              <p class="toolbar__mode">
+                <strong>Free play</strong>
+                <span>Works exactly the way the brief asks.</span>
+              </p>
+              <button type="button" id="play-button" class="button">
+                Play Symbol Hunt
+              </button>
+            </div>
+
+            <dl id="hud-round" class="toolbar__round" hidden>
+              <div id="hud-target" class="readout readout--target">
+                <dt>Find</dt>
+                <dd>
+                  <span id="hud-target-icon" class="readout__icon"></span>
+                  <span id="hud-target-name" aria-live="polite"></span>
+                </dd>
+              </div>
+              <div class="readout">
+                <dt>Time</dt>
+                <dd id="hud-time">30s</dd>
+              </div>
+              <div class="readout">
+                <dt>Score</dt>
+                <dd id="hud-score">0</dd>
+              </div>
+              <div class="readout">
+                <dt>Combo</dt>
+                <dd id="hud-combo">×1</dd>
+              </div>
+              <div class="readout">
+                <dt>Bonus</dt>
+                <dd id="hud-bonus">×1.0</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div id="app">
+            <div class="stats">
+              <div class="stats__field">
+                Shapes: <span id="shape-count">0</span>
+              </div>
+              <div class="stats__field">
+                Area: <span id="shape-area">0</span> px²
+              </div>
+            </div>
+            <div id="feedback" class="feedback"></div>
+            <span class="marker marker--a" aria-hidden="true">A</span>
+            <span class="marker marker--b" aria-hidden="true">B</span>
+            <span class="marker marker--c" aria-hidden="true">C</span>
+            <span class="marker marker--g" aria-hidden="true">G</span>
+          </div>
+
+          <div class="controls">
+            <span class="marker marker--inline" aria-hidden="true">F</span>
+            <div class="control">
+              <div class="control__group">
+                <button
+                  type="button"
+                  id="spawn-rate-minus"
+                  class="control__button"
+                  aria-label="Fewer shapes per second"
+                >
+                  −
+                </button>
+                <span id="spawn-rate-value" class="control__value">1</span>
+                <button
+                  type="button"
+                  id="spawn-rate-plus"
+                  class="control__button"
+                  aria-label="More shapes per second"
+                >
+                  +
+                </button>
+              </div>
+              <span class="control__label">Shapes per second</span>
+            </div>
+
+            <div class="control">
+              <div class="control__group">
+                <button
+                  type="button"
+                  id="gravity-minus"
+                  class="control__button"
+                  aria-label="Decrease gravity"
+                >
+                  −
+                </button>
+                <span id="gravity-value" class="control__value">0.3</span>
+                <button
+                  type="button"
+                  id="gravity-plus"
+                  class="control__button"
+                  aria-label="Increase gravity"
+                >
+                  +
+                </button>
+              </div>
+              <span class="control__label">Gravity</span>
+            </div>
+          </div>
+
+          <figcaption class="legend">
+            <p class="legend__title">
+              This is Figure 1 from the brief, except it works. The blue letters
+              point to the same things as in the brief.
+            </p>
+            <dl class="legend__list">
+              <div>
+                <dt>A</dt>
+                <dd>Shapes start just above the board, somewhere random.</dd>
+              </div>
+              <div>
+                <dt>B</dt>
+                <dd>They fall out the bottom and get cleaned up.</dd>
+              </div>
+              <div>
+                <dt>C</dt>
+                <dd>Anything outside the board is hidden.</dd>
+              </div>
+              <div>
+                <dt>D</dt>
+                <dd>Tap an empty spot to drop a random lumpy shape.</dd>
+              </div>
+              <div>
+                <dt>E</dt>
+                <dd>Tap a shape to get rid of it.</dd>
+              </div>
+              <div>
+                <dt>F</dt>
+                <dd>Change how many shapes appear and how fast they fall.</dd>
+              </div>
+              <div>
+                <dt>G</dt>
+                <dd>
+                  How many shapes are on the board, and how much space they take
+                  up.
+                </dd>
+              </div>
+            </dl>
+          </figcaption>
+        </figure>
+      </section>
+
+      <div class="sections page">
+        <h2 class="sections__head">About the project</h2>
+
+        <!-- Decisions -->
+        <details id="decisions" class="section" name="about">
+          <summary>
+            <span class="section__title">Decisions I had to make</span>
+            <span class="section__hint"
+              >The parts of the brief that could be read more than one way</span
+            >
+          </summary>
+          <div class="section__body">
+            <dl class="defs defs--stacked">
+              <div>
+                <dt>Which shapes count as "on screen"</dt>
+                <dd>
+                  Only the ones you can actually see, even partly. A shape that
+                  just spawned is still above the board, so it doesn't count
+                  yet.
+                </dd>
+              </div>
+              <div>
+                <dt>What "surface area" means</dt>
+                <dd>
+                  I add up the real area of each visible shape: πr² for circles,
+                  π × a × b for ellipses, and the shoelace formula for
+                  everything with corners. I don't subtract overlaps. Doing that
+                  would mean checking every pixel every frame, which is too slow
+                  on a phone.
+                </dd>
+              </div>
+              <div>
+                <dt>Where a new shape starts</dt>
+                <dd>
+                  I measure the shape first, then put it so its bottom edge sits
+                  exactly on the top of the board. That way it slides in instead
+                  of popping in, whatever its size.
+                </dd>
+              </div>
+              <div>
+                <dt>How the lumpy shapes stay tidy</dt>
+                <dd>
+                  They get 5 to 10 corners. I cut the circle into equal slices
+                  and put one corner somewhere random inside each slice. The
+                  corners always go round in order, so the edges never cross.
+                </dd>
+              </div>
+              <div>
+                <dt>Gravity speeds things up</dt>
+                <dd>
+                  Gravity changes the speed, and the speed moves the shape. So
+                  shapes start slow and get faster, like dropping something for
+                  real.
+                </dd>
+              </div>
+              <div>
+                <dt>Limits on the buttons</dt>
+                <dd>
+                  Gravity goes from 0.1 to 2, and shapes from 1 to 10 per
+                  second. With gravity at 0, new shapes would sit above the
+                  board forever and never get cleaned up.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </details>
+
+        <!-- Performance -->
+        <details id="performance" class="section" name="about">
+          <summary>
+            <span class="section__title">Performance and memory</span>
+            <span class="section__hint"
+              >So it can run for a long time on an average phone</span
+            >
+          </summary>
+          <div class="section__body">
+            <ul class="points">
+              <li>
+                <strong>Nothing piles up.</strong> A shape is deleted as soon as
+                it falls out of the board or gets tapped. I checked by logging
+                the count: it stays at 1 or 2 instead of climbing forever.
+              </li>
+              <li>
+                <strong>Graphics get reused.</strong> When a shape is removed,
+                its Pixi graphic goes back into a pool (up to 50) and gets
+                reused for the next one.
+              </li>
+              <li>
+                <strong>Same speed on every device.</strong> Movement uses
+                Pixi's <code>deltaTime</code>, so a slow phone at 30fps moves
+                shapes as fast as a laptop at 60fps.
+              </li>
+              <li>
+                <strong>The page only updates when it needs to.</strong> The
+                numbers in the HTML only change when the value actually changes,
+                not 60 times a second.
+              </li>
+              <li>
+                <strong>Sharp, but not wasteful.</strong> The canvas draws as
+                many pixels as it takes up on the screen, and no more. A phone
+                draws far fewer than a laptop, and I cap the pixel ratio at 2 so
+                a 3× screen doesn't draw 9 times the pixels.
+              </li>
+              <li>
+                <strong>Made for fingers.</strong> Pointer events handle mouse
+                and touch with the same code, and the buttons are 48px so
+                they're easy to hit.
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <!-- Symbol Hunt -->
+        <details id="game" class="section" name="about">
+          <summary>
+            <span class="section__title">Why I added a game</span>
+            <span class="section__hint"
+              >An optional 30-second round on top of the brief</span
+            >
+          </summary>
+          <div class="section__body">
+            <p>
+              Once everything worked, it felt a bit like a screensaver. You
+              could tap things, but there was no reason to. So I added a short
+              game that gives each feature from the brief a job, without
+              changing how any of them work. Free play is still the default.
+            </p>
+
+            <ol class="rules">
+              <li>You get a shape to find. It changes every 10 seconds.</li>
+              <li>
+                Tap the right shape to score <code>10 × combo × bonus</code>.
+              </li>
+              <li>
+                Tap the wrong shape or an empty spot, and your combo resets. An
+                empty tap also drops a lumpy shape in your way.
+              </li>
+              <li>
+                More shapes and stronger gravity give you a bigger bonus. So the
+                buttons become a "how brave are you" setting.
+              </li>
+            </ol>
+
+            <div class="table-wrap">
+              <table class="checklist">
+                <thead>
+                  <tr>
+                    <th scope="col">Feature from the brief</th>
+                    <th scope="col">Its job in the game</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Random shapes and colours</td>
+                    <td>What you look for</td>
+                  </tr>
+                  <tr>
+                    <td>Tap a shape to remove it</td>
+                    <td>How you score</td>
+                  </tr>
+                  <tr>
+                    <td>Tap the board to add a shape</td>
+                    <td>The penalty for missing</td>
+                  </tr>
+                  <tr>
+                    <td>Shape count and area</td>
+                    <td>How messy the board is getting</td>
+                  </tr>
+                  <tr>
+                    <td>Shapes per second and gravity</td>
+                    <td>How hard it is, and how big your bonus gets</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+
+        <!-- Personal notes -->
+        <details id="notes" class="section" name="about">
+          <summary>
+            <span class="section__title">Fun problems along the way</span>
+            <span class="section__hint"
+              >The bits that made me stop and think</span
+            >
+          </summary>
+          <div class="section__body">
+            <p>
+              This was my first project with PixiJS, and my experience carried
+              over well. Years of building components made splitting the app
+              into small classes feel natural, and TypeScript caught mistakes
+              before they ever reached the screen. Pixi itself was quick to pick
+              up. The interesting part was the geometry and the game loop, so
+              here are a few things I enjoyed figuring out.
+            </p>
+
+            <dl class="defs defs--stacked">
+              <div>
+                <dt>The area of any polygon</dt>
+                <dd>
+                  Triangles and squares have simple formulas, but my random
+                  lumpy shapes don't. The shoelace formula works for all of
+                  them. Before trusting it in code, I checked it by hand on a
+                  2×2 square and got 4.
+                </dd>
+              </div>
+              <div>
+                <dt>Closing the loop with one % sign</dt>
+                <dd>
+                  The last corner of a shape has to connect back to the first.
+                  <code>(i + 1) % length</code> does that in one go. It works
+                  like a clock: after 12 comes 1, not 13.
+                </dd>
+              </div>
+              <div>
+                <dt>My square was a diamond</dt>
+                <dd>
+                  Technically still a square, just turned 45°. Shapes with an
+                  even number of sides now start half a step round, so they all
+                  sit flat.
+                </dd>
+              </div>
+              <div>
+                <dt>A star with no points</dt>
+                <dd>
+                  Give a star the same inner and outer radius and it turns into
+                  a round blob with 10 sides. A nice reminder that the zig-zag
+                  between far and near corners is the only thing that makes it a
+                  star.
+                </dd>
+              </div>
+              <div>
+                <dt>0.1 + 0.2 = 0.30000000000000004</dt>
+                <dd>
+                  The classic JavaScript decimal problem. Adding 0.1 to gravity
+                  a few times would give numbers like that, so I round it to one
+                  decimal and the display always stays clean.
+                </dd>
+              </div>
+              <div>
+                <dt>A sliver that shouldn't be there</dt>
+                <dd>
+                  I noticed new shapes peeking into the board for a single
+                  frame. The cause was the order inside the game loop, and the
+                  fix was one swapped line: move the old shapes first, then add
+                  the new ones.
+                </dd>
+              </div>
+              <div>
+                <dt><code>splice(-1, 1)</code> doesn't do nothing</dt>
+                <dd>
+                  It deletes the last item. So removing a shape that wasn't in
+                  the list would have quietly deleted a different one. A small
+                  check stops that before it can ever happen.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </details>
+      </div>
+    </main>
+
+    <footer class="page">
+      <div class="footer">
+        <p>Made by Alexandar</p>
+        <p class="footer__links">
+          <a href="https://github.com/JustAlex-WebDev/falling-shapes" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://www.linkedin.com/in/alexandar-valov" target="_blank" rel="noopener">LinkedIn</a>
+        </p>
+      </div>
+    </footer>
+
+    <dialog id="round-summary" class="summary" aria-labelledby="summary-title">
+      <h2 id="summary-title">Time's up</h2>
+      <p id="summary-badge" class="summary__badge" hidden>New best score!</p>
+      <dl class="summary__stats">
+        <div class="summary__score">
+          <dt>Score</dt>
+          <dd id="summary-score">0</dd>
+        </div>
+        <div>
+          <dt>Hits</dt>
+          <dd id="summary-hits">0</dd>
+        </div>
+        <div>
+          <dt>Accuracy</dt>
+          <dd id="summary-accuracy">0%</dd>
+        </div>
+        <div>
+          <dt>Longest streak</dt>
+          <dd id="summary-streak">0</dd>
+        </div>
+        <div>
+          <dt>Best score</dt>
+          <dd id="summary-best">0</dd>
+        </div>
+      </dl>
+      <div class="summary__actions">
+        <button type="button" id="summary-again" class="button">
+          Play again
+        </button>
+        <button type="button" id="summary-close" class="button button--quiet">
+          Back to free play
+        </button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
